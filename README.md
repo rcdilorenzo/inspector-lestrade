@@ -16,6 +16,8 @@ As I progress through this 8-week class (and this project), I hope to give weekl
 
 - [Week 1: GazeCapture download, DataCamp tutorials, custom computer, and prep work](writings/week-01-dated-09-01-2018.md)
 - [Week 2: Exploratory data analysis w/ cool visualizations, quick blog article, and reading](writings/week-02-dated-09-08-2018.md)
+- [Week 3: 3D Facial landmarks, Open Images v4, Yolo v3, and 2TB RAID upgrade](writings/week-03-dated-09-15-2018.md)
+
 
 # Linked Articles
 
