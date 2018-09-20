@@ -1,3 +1,6 @@
 [submodule "01-yolov3/keras-yolo3"]
 	path = 01-yolov3/keras-yolo3
 	url = https://github.com/qqwweee/keras-yolo3
+[submodule "01-yolov3/darknet_scripts"]
+	path = 01-yolov3/darknet_scripts
+	url = git@github.com:Jumabek/darknet_scripts.git

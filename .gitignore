@@ -1,2 +1,5 @@
 .ipynb_checkpoints
 eye-gaze-capture.csv
+__pycache__
+
+01-yolov3/models/
