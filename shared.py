@@ -1,6 +1,7 @@
-from funcy import partial, compose, identity
+from funcy import partial, compose, identity, memoize, curry
 import os, contextlib
 import matplotlib.pyplot as plt
+import pandas as pd
 from time import time
 
 YOLO_DIR = os.path.expanduser('~/workspaces/data/yolov3')
@@ -8,6 +9,10 @@ FOLDER_DIR = os.path.expanduser('~/Documents/data/gazecapture')
 OUT_CSV = os.path.abspath(
     os.path.join(os.path.dirname(__file__), './eye-gaze-capture.csv')
 )
+
+@curry
+def prop(key, value):
+    return value[key]
 
 def log(x):
     print(x)
@@ -34,6 +39,10 @@ def supress_stdout(func):
 
 def load_df():
     return pd.read_csv(OUT_CSV)
+
+@memoize
+def capture_df():
+    return load_df()
 
 frame = compose(plt.imread, partial(os.path.join, FOLDER_DIR),
                 lambda row: row['Frame'])
