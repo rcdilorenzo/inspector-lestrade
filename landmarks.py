@@ -21,7 +21,7 @@ def from_npz(values, npz_file):
 @memoize
 def landmarks():
     return pipe(
-        './*.npz',
+        './data/*.npz',
         glob,
         sorted(key = regex_numeric),
         list,

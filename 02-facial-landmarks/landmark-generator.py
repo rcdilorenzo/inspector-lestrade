@@ -48,9 +48,9 @@ with progressbar.ProgressBar(max_value=(end_index - start_index), redirect_stdou
 
         if (i + 1) % 1000 == 0:
             print('Saving {} features'.format(len(landmarks)))
-            np.savez('./facial-landmarks-batch-{}.npz'.format(batch), landmarks)
+            np.savez('./data/facial-landmarks-batch-{}.npz'.format(batch), landmarks)
 
         bar.update(i - start_index)
 
 print('Saving {} features'.format(len(landmarks)))
-np.savez('./facial-landmarks-batch-{}.npz'.format(batch), landmarks)
+np.savez('./data/facial-landmarks-batch-{}.npz'.format(batch), landmarks)
