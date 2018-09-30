@@ -1,6 +1,7 @@
 from funcy import memoize
 import tensorflow as tf
 
+IMAGE_SIZE = (128, 128)
 LEFT = 42
 RIGHT = 36
 
@@ -13,18 +14,30 @@ def eye_tensor(image, predictions, factor, index = LEFT):
     min_x_raw, max_x_raw = tf.reduce_min(x), tf.reduce_max(x)
     min_y_raw, max_y_raw = tf.reduce_min(y), tf.reduce_max(y)
 
-    # Expand by factor
+    # Expand by factor and reform as square
     width = tf.to_float(max_x_raw - min_x_raw)
-    width_delta = tf.to_int32(tf.round((width * factor - width) / 2))
     height = tf.to_float(max_y_raw - min_y_raw)
-    height_delta = tf.to_int32(tf.round((height * factor - height) / 2))
-    min_x = min_x_raw - width_delta
-    max_x = max_x_raw + width_delta
-    min_y = min_y_raw - height_delta
-    max_y = max_y_raw + height_delta
+    sq_size = tf.to_int32(tf.round(tf.reduce_max([width * factor, height * factor])))
 
-    eye = image[min_y:max_y, min_x:max_x]
-    return (eye, (min_x, max_x, min_y, max_y))
+    # Compute deltas
+    width_delta = tf.to_int32(tf.round((tf.to_float(sq_size) - width) / 2))
+    height_delta = tf.to_int32(tf.round((tf.to_float(sq_size) - height) / 2))
+
+    # Update frame based on delta (but with min/max boundaries)
+    max_x = tf.reduce_min([tf.reduce_max([max_x_raw + width_delta, 1]),
+                           tf.shape(image)[1]])
+    min_x = tf.reduce_max([tf.reduce_min([min_x_raw - width_delta, max_x - 1]), 0])
+    max_y = tf.reduce_min([tf.reduce_max([max_y_raw + height_delta, 1]),
+                           tf.shape(image)[0]])
+    min_y = tf.reduce_max([tf.reduce_min([min_y_raw - height_delta, max_y - 1]), 0])
+
+    # Create image and scale to (128, 128)
+    unscaled_shape = tf.stack([max_y - min_y, max_x - min_x, tf.constant(3)])
+    eye = tf.reshape(image[min_y:max_y, min_x:max_x] / 255, unscaled_shape)
+    scaled_eye = tf.image.resize_images(eye, IMAGE_SIZE)
+
+    # Return original bounding box and resized image
+    return (scaled_eye, (min_x, max_x, min_y, max_y))
 
 @memoize
 def eyes_tensor():

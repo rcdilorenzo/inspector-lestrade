@@ -9,6 +9,7 @@ from shared import frame, log
 import facial_model as fm
 
 # Library imports
+from math import ceil
 from toolz.curried import *
 from funcy import compose
 import numpy as np
@@ -39,17 +40,17 @@ class InspectNNGenerator(Sequence):
         self.right_eye = right_eye
 
     def __len__(self):
-        return self.data_frame.shape[0]
+        return ceil(self.data_frame.shape[0] / self.batch_size)
 
-    def rows_for(self, batch_id):
+    def __rows_for(self, batch_id):
         start_index = batch_id * self.batch_size
         end_index = (batch_id + 1) * self.batch_size
         return self.data_frame.iloc[start_index:end_index]
 
-    def frames_for(self, rows):
+    def __frames_for(self, rows):
         return rows.apply(frame, axis=1)
 
-    def reduce_eyes(self, acc, landmarks_and_image):
+    def __reduce_eyes(self, acc, landmarks_and_image):
         eye_ops = (self.left_eye, self.right_eye)
         (landmarks, image) = landmarks_and_image
         data = {
@@ -58,25 +59,20 @@ class InspectNNGenerator(Sequence):
             self.factor_input: 1.5
         }
         (left_eye, right_eye) = self.session.run(eye_ops, feed_dict=data)
-        return (acc[0] + self.preprocess_eyes(left_eye),
-                acc[1] + self.preprocess_eyes(right_eye))
+        return [acc[0] + [left_eye],
+                acc[1] + [right_eye]]
 
-    def scale_eyes(self, pixels):
-        return pixels / 255
-
-    def preprocess_eyes(self, eyes):
-        return [list_map(self.scale_eyes, eyes)]
-
-    def preprocess_landmarks(self, landmarks_values):
-        return list_map(self.scaler.transform, landmarks_values)
+    def __preprocess_landmarks(self, landmarks_values):
+        return np.array(list_map(self.scaler.transform, landmarks_values))
 
     def __getitem__(self, batch_id):
-        rows = self.rows_for(batch_id)
-        frames = self.frames_for(rows)
+        rows = self.__rows_for(batch_id)
+        frames = self.__frames_for(rows)
         (left_eyes, right_eyes) = reduce(
-            self.reduce_eyes,
+            self.__reduce_eyes,
             zip(np.stack(rows.Landmarks.apply(lambda r: r[:, 0:2]), 0), frames),
             ([], [])
         )
-        landmarks = self.preprocess_landmarks(rows.Landmarks.values)
-        return [left_eyes, right_eyes, landmarks]
+        landmarks = self.__preprocess_landmarks(rows.Landmarks.values)
+        coordinates = np.column_stack((rows['dotInfo.XCam'], rows['dotInfo.YCam']))
+        return [np.array(left_eyes), np.array(right_eyes), landmarks], coordinates
