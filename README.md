@@ -21,6 +21,8 @@ As I progress through this 8-week class (and this project), I hope to give weekl
 
 <a href="https://youtu.be/QvKLHZyOniE"><img alt="Eye Tracking Update: Face Alignment, Yolo v3 Training, and 2nd 1080 Ti" src="https://i.ytimg.com/vi/QvKLHZyOniE/sddefault.jpg" width="400"></a>
 
+- [Week 5: A Running Multi-Input DNN, Tensorflow Image Preprocess, TIL Yolo](writings/week-05-dated-09-29-2018.md)
+
 # Linked Articles
 
 [Visualization Quick Tip: Relative Heatmaps, Medium.com](https://medium.com/@rcdilorenzo/visualization-quick-tip-relative-heatmaps-86a52a0c5a0c)
