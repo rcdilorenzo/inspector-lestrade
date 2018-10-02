@@ -23,9 +23,9 @@ SET_TYPE_TEST = 'test'
 SET_TYPE_VALIDATION = 'val'
 
 class InspectNNGenerator(Sequence):
-    def __init__(self, session, data_frame, batch_size, set_type=SET_TYPE_TRAIN):
+    def __init__(self, session, data_frame, batch_size, set_type=SET_TYPE_TRAIN, max_size=10000000):
         self.session = session
-        self.data_frame = data_frame[data_frame.Dataset == set_type]
+        self.data_frame = data_frame[data_frame.Dataset == set_type][0:max_size].sample(frac=1)
         self.batch_size = batch_size
 
         # Create scaler for facial features
