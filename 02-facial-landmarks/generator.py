@@ -32,12 +32,15 @@ class InspectNNGenerator(Sequence):
         self.scaler = StandardScaler(copy=True).fit(np.vstack(data_frame.Landmarks)[:, :])
 
         # Import eyes tensorflow operations
-        (predictions, image, factor, left_eye, right_eye) = fm.eyes_tensor()[0:5]
+        (predictions, image, factor, left_eye, right_eye,
+         _l, _r, gaze_likelihood) = fm.eyes_tensor()
+
         self.predictions_input = predictions
         self.image_input = image
         self.factor_input = factor
         self.left_eye = left_eye
         self.right_eye = right_eye
+        self.gaze_likelihood = gaze_likelihood
 
     def __len__(self):
         return ceil(self.data_frame.shape[0] / self.batch_size)
@@ -51,16 +54,17 @@ class InspectNNGenerator(Sequence):
         return rows.apply(frame, axis=1)
 
     def __reduce_eyes(self, acc, landmarks_and_image):
-        eye_ops = (self.left_eye, self.right_eye)
+        eye_ops = (self.left_eye, self.right_eye, self.gaze_likelihood)
         (landmarks, image) = landmarks_and_image
         data = {
             self.predictions_input: landmarks,
             self.image_input: image,
             self.factor_input: 1.5
         }
-        (left_eye, right_eye) = self.session.run(eye_ops, feed_dict=data)
+        (left_eye, right_eye, likelihood) = self.session.run(eye_ops, feed_dict=data)
         return [acc[0] + [left_eye],
-                acc[1] + [right_eye]]
+                acc[1] + [right_eye],
+                acc[2] + [likelihood]]
 
     def __preprocess_landmarks(self, landmarks_values):
         return np.array(list_map(self.scaler.transform, landmarks_values))
@@ -68,11 +72,11 @@ class InspectNNGenerator(Sequence):
     def __getitem__(self, batch_id):
         rows = self.__rows_for(batch_id)
         frames = self.__frames_for(rows)
-        (left_eyes, right_eyes) = reduce(
+        (left_eyes, right_eyes, likelihood) = reduce(
             self.__reduce_eyes,
             zip(np.stack(rows.Landmarks.apply(lambda r: r[:, 0:2]), 0), frames),
-            ([], [])
+            ([], [], [])
         )
         landmarks = self.__preprocess_landmarks(rows.Landmarks.values)
         coordinates = np.column_stack((rows['dotInfo.XCam'], rows['dotInfo.YCam']))
-        return [np.array(left_eyes), np.array(right_eyes), landmarks], coordinates
+        return [np.array(left_eyes), np.array(right_eyes), landmarks], [coordinates, likelihood]

@@ -10,6 +10,11 @@ def eye_tensor(image, predictions, factor, index = LEFT):
     x = eye_points[:, 0]
     y = eye_points[:, 1]
 
+    # Image dimensions
+    image_shape = tf.shape(image)
+    image_height = image_shape[0]
+    image_width = image_shape[1]
+
     # Find bounding box
     min_x_raw, max_x_raw = tf.reduce_min(x), tf.reduce_max(x)
     min_y_raw, max_y_raw = tf.reduce_min(y), tf.reduce_max(y)
@@ -23,12 +28,17 @@ def eye_tensor(image, predictions, factor, index = LEFT):
     width_delta = tf.to_int32(tf.round((tf.to_float(sq_size) - width) / 2))
     height_delta = tf.to_int32(tf.round((tf.to_float(sq_size) - height) / 2))
 
+    # Pre-compute max_x and max_y
+    max_x = max_x_raw + width_delta
+    max_y = max_y_raw + height_delta
+
+    # Calculate whether eye visible within image
+    both_eyes_visible = tf.logical_and(max_x < image_width, max_y < image_height)
+
     # Update frame based on delta (but with min/max boundaries)
-    max_x = tf.reduce_min([tf.reduce_max([max_x_raw + width_delta, 1]),
-                           tf.shape(image)[1]])
+    max_x = tf.reduce_min([tf.reduce_max([max_x, 1]), tf.shape(image)[1]])
     min_x = tf.reduce_max([tf.reduce_min([min_x_raw - width_delta, max_x - 1]), 0])
-    max_y = tf.reduce_min([tf.reduce_max([max_y_raw + height_delta, 1]),
-                           tf.shape(image)[0]])
+    max_y = tf.reduce_min([tf.reduce_max([max_y, 1]), tf.shape(image)[0]])
     min_y = tf.reduce_max([tf.reduce_min([min_y_raw - height_delta, max_y - 1]), 0])
 
     # Create image and scale to (128, 128)
@@ -37,7 +47,7 @@ def eye_tensor(image, predictions, factor, index = LEFT):
     scaled_eye = tf.image.resize_images(eye, IMAGE_SIZE)
 
     # Return original bounding box and resized image
-    return (scaled_eye, (min_x, max_x, min_y, max_y))
+    return (scaled_eye, (min_x, max_x, min_y, max_y), both_eyes_visible)
 
 @memoize
 def eyes_tensor():
@@ -45,9 +55,11 @@ def eyes_tensor():
     image = tf.placeholder(tf.int32)
     factor = tf.placeholder_with_default(tf.constant(1.5), shape=())
 
-    (left_eye, left_box) = eye_tensor(
+    (left_eye, left_box, left_eye_visible) = eye_tensor(
         image, predictions, factor, LEFT)
-    (right_eye, right_box) = eye_tensor(
+    (right_eye, right_box, right_eye_visible) = eye_tensor(
         image, predictions, factor, RIGHT)
 
-    return (predictions, image, factor, left_eye, right_eye, left_box, right_box)
+    gaze_likelihood = tf.to_float(tf.logical_and(left_eye_visible, right_eye_visible))
+
+    return (predictions, image, factor, left_eye, right_eye, left_box, right_box, gaze_likelihood)

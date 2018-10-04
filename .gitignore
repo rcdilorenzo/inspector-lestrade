@@ -1,5 +1,7 @@
 .ipynb_checkpoints
 eye-gaze-capture.csv
 __pycache__
+.pytest_cache/
 
 01-yolov3/models/
+02-facial-landmarks/data/facial-landmarks.npy
