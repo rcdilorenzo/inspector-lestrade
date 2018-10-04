@@ -5,13 +5,22 @@ from toolz import pipe
 from toolz.curried import *
 import numpy as np
 import re
+import os
 from shared import frame
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+ALL_LANDMARKS_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), './data/facial-landmarks.npy')
+)
+
+BATCHES_PATTERN = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), './data/facial-landmarks-batch*.npz')
+)
+
 def regex_numeric(value):
-    return int(re.search('\d+', value).group(0))
+    return int(re.search('(\d+).npz', value).group(1))
 
 def from_npz(values, npz_file):
     next_values = npz_file['arr_0']
@@ -19,15 +28,23 @@ def from_npz(values, npz_file):
     return np.append(values, next_values)
 
 @memoize
-def landmarks():
-    return pipe(
-        './data/*.npz',
-        glob,
-        sorted(key = regex_numeric),
-        list,
-        map(np.load),
-        lambda npzs: reduce(from_npz, npzs, np.empty(0))
-    )
+def landmarks(mmap=None):
+    if os.path.exists(ALL_LANDMARKS_PATH):
+        return np.load(ALL_LANDMARKS_PATH, mmap_mode=mmap)
+    else:
+        return pipe(
+            BATCHES_PATTERN,
+            glob,
+            sorted(key = regex_numeric),
+            list,
+            map(np.load),
+            lambda npzs: reduce(from_npz, npzs, np.empty(0)),
+            __save_and_return_landmarks
+        )
+
+def __save_and_return_landmarks(data):
+    np.save(ALL_LANDMARKS_PATH, data)
+    return data
 
 def plot_landmarks(row):
     preds = row.at['Landmarks']

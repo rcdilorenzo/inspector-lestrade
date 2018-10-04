@@ -10,6 +10,9 @@ FOLDER_DIR = os.path.expanduser('~/Documents/data/gazecapture')
 OUT_CSV = os.path.abspath(
     os.path.join(os.path.dirname(__file__), './eye-gaze-capture.csv')
 )
+OUT_SAMPLE_CSV = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), './sample.csv')
+)
 
 @curry
 def prop(key, value):
@@ -44,6 +47,10 @@ def load_df():
 @memoize
 def capture_df():
     return load_df()
+
+@memoize
+def sample_df():
+    return pd.read_csv(OUT_SAMPLE_CSV)
 
 frame = compose(plt.imread, partial(os.path.join, FOLDER_DIR),
                 lambda row: row['Frame'])
