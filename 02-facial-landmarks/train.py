@@ -65,7 +65,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v2-2conv2pool'
+NAME = 'v3-2conv2pool-dropdense'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -125,7 +125,6 @@ right_path = eye_path(right_eye_input, prefix='right')
 
 landmarks = pipe(
     landmark_input,
-    Dense(16, activation='relu'),
     Dense(8, activation='relu'),
     Flatten()
 )
