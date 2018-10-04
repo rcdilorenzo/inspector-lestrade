@@ -35,6 +35,9 @@ df['Landmarks'] = np.load('02-facial-landmarks/sample_landmarks.npy')
 
 generator = InspectNNGenerator(session, df, 2, set_type=SET_TYPE_TRAIN)
 
+# Remove randomization
+generator.data_frame = df
+
 inputs, outputs = generator.__getitem__(0)
 
 # =============================================================================
@@ -62,15 +65,12 @@ def test_landmark_inputs():
 
     assert landmarks.shape == (2, 68, 3)
 
-def test_output_row_counts_match():
-    assert list(map(len, outputs)) == [2, 2]
-
-def test_coordinate_outputs():
-    assert outputs[0].shape == (2, 2)
+def test_output_shape():
+    assert outputs.shape == (2, 3)
 
 def test_gaze_likelihood_output():
     # 1 = both eyes visible
     # 0 = one or both eyes missing
-    assert outputs[1][BOTH_EYES_IDX] == 1
-    assert outputs[1][ONE_EYE_IDX] == 0
+    assert outputs[BOTH_EYES_IDX, 2] == 1.0
+    assert outputs[ONE_EYE_IDX, 2] == 0.0
 

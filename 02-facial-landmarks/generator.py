@@ -78,5 +78,7 @@ class InspectNNGenerator(Sequence):
             ([], [], [])
         )
         landmarks = self.__preprocess_landmarks(rows.Landmarks.values)
-        coordinates = np.column_stack((rows['dotInfo.XCam'], rows['dotInfo.YCam']))
-        return [np.array(left_eyes), np.array(right_eyes), landmarks], [coordinates, likelihood]
+        output = np.column_stack(
+            (rows['dotInfo.XCam'], rows['dotInfo.YCam'], likelihood)
+        )
+        return [np.array(left_eyes), np.array(right_eyes), landmarks], output

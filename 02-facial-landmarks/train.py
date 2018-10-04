@@ -3,14 +3,14 @@ import sys
 
 # Setup visible GPUs
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 import tensorflow as tf
 import keras.backend as K
 
 # Configure tensorflow options
 K.clear_session()
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
 session = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 K.set_session(session)
 
@@ -23,11 +23,8 @@ from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 from keras.callbacks import TensorBoard, ModelCheckpoint
 
-# Import shared from directory above
-sys.path.insert(0, '../')
-from shared import capture_df, frame
-
 # Import local files
+from shared import capture_df, frame
 from landmarks import landmarks
 from generator import InspectNNGenerator, SET_TYPE_TEST, SET_TYPE_TRAIN, SET_TYPE_VALIDATION
 
@@ -49,27 +46,26 @@ df = df[df.Landmarks.apply(has_landmarks)]
 # Data Format
 #   Inputs:  [left_eyes, right_eyes, landmarks]
 #   Outputs: [XCam, YCam] (centimeters relative position to lens)
-generator = InspectNNGenerator(session, df, 8, set_type=SET_TYPE_TRAIN)
-val_generator = InspectNNGenerator(session, df, 8, max_size=2000, set_type=SET_TYPE_VALIDATION)
+generator = InspectNNGenerator(session, df, 16, set_type=SET_TYPE_TRAIN)
+val_generator = InspectNNGenerator(session, df, 16, set_type=SET_TYPE_VALIDATION)
 
 # ========================================
 # Loss Function
 # ========================================
 
-def euclidean_distance_mse(actual, pred):
-    x = actual[:, 0]
-    y = actual[:, 1]
-    x_hat = pred[:, 0]
-    y_hat = pred[:, 1]
+# (1/b) ∑^b_(i=1)([(^G-G)^2 + 1]^2 * [(^y - y)^2 + (^x - x)^2])
+def loss_func(actual, pred):
+    x_diff = tf.square(pred[:, 0] - actual[:, 0])
+    y_diff = tf.square(pred[:, 1] - actual[:, 1])
+    g_diff = tf.square(pred[:, 2] - actual[:, 2])
 
-    distance = K.sqrt(K.square(x_hat - x) - K.square(y_hat - y))
-    return K.mean(K.square(distance), axis=-1)
+    return K.mean(tf.square(g_diff + 1) * (y_diff + x_diff))
 
 # ========================================
 # Callbacks
 # ========================================
 
-NAME = 'inception6nodes_few_dense'
+NAME = 'v2-2conv2pool'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -115,7 +111,10 @@ def inception_module(prefix, count, input_layer):
 def eye_path(input_layer, prefix='na'):
     return pipe(
         input_layer,
-        inception_module(prefix + '_mni1', 6),
+        Conv2D(8, (3, 3), activation='relu', padding='same', name=(prefix + '_conv1')),
+        MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max1')),
+        Conv2D(8, (3, 3), activation='relu', padding='same', name=(prefix + '_conv2')),
+        MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max2')),
         BatchNormalization(),
         Flatten(name=(prefix + '_flttn'))
     )
@@ -127,24 +126,35 @@ right_path = eye_path(right_eye_input, prefix='right')
 landmarks = pipe(
     landmark_input,
     Dense(16, activation='relu'),
-    Dropout(0.25),
-    Dense(16, activation='relu'),
+    Dense(8, activation='relu'),
     Flatten()
 )
 
+grouped = concatenate([left_path, right_path, landmarks])
+
 coordinate = pipe(
-    concatenate([left_path, right_path, landmarks]),
-    Dense(16, activation='relu'),
-    Dense(2, activation='sigmoid', name='coord_output')
+    grouped,
+    Dense(8, activation='linear'),
+    Dense(2, activation='linear', name='coord_output')
+)
+
+gaze_likelihood = pipe(
+    grouped,
+    Dense(8, activation='relu'),
+    Dense(1, activation='sigmoid', name='gaze_likelihood')
+)
+
+output = pipe(
+    concatenate([coordinate, gaze_likelihood]),
 )
 
 model = Model(inputs=[left_eye_input, right_eye_input, landmark_input],
-              outputs=[coordinate])
+              outputs=[output])
 
 print('model', model.summary())
 
-model.compile(optimizer=Adam(lr=1e3), loss=euclidean_distance_mse)
+model.compile(optimizer=Adam(lr=1e2), loss=loss_func)
 
-model.fit_generator(generator, validation_data=val_generator, steps_per_epoch=5000,
+model.fit_generator(generator, validation_data=val_generator,
                     callbacks=[board, checkpoint], epochs=100)
 
