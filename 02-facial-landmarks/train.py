@@ -46,8 +46,8 @@ df = df[df.Landmarks.apply(has_landmarks)]
 # Data Format
 #   Inputs:  [left_eyes, right_eyes, landmarks]
 #   Outputs: [XCam, YCam] (centimeters relative position to lens)
-generator = InspectNNGenerator(session, df, 16, set_type=SET_TYPE_TRAIN)
-val_generator = InspectNNGenerator(session, df, 16, set_type=SET_TYPE_VALIDATION)
+generator = InspectNNGenerator(session, df, 128, set_type=SET_TYPE_TRAIN)
+val_generator = InspectNNGenerator(session, df, 128, set_type=SET_TYPE_VALIDATION)
 
 # ========================================
 # Loss Function
@@ -65,7 +65,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v4-2-3x3convpool-2x2convpool'
+NAME = 'v5-2+3x3-2x2-final-dense-norm-layers'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -99,6 +99,8 @@ right_path = eye_path(right_eye_input, prefix='right')
 
 landmarks = pipe(
     landmark_input,
+    Dense(16, activation='relu'),
+    BatchNormalization(),
     Dense(8, activation='relu'),
     Flatten()
 )
@@ -107,13 +109,17 @@ grouped = concatenate([left_path, right_path, landmarks])
 
 coordinate = pipe(
     grouped,
+    Dense(16, activation='linear'),
     Dense(8, activation='linear'),
+    BatchNormalization(),
     Dense(2, activation='linear', name='coord_output')
 )
 
 gaze_likelihood = pipe(
     grouped,
     Dense(8, activation='relu'),
+    BatchNormalization(),
+    Dense(4, activation='relu'),
     Dense(1, activation='sigmoid', name='gaze_likelihood')
 )
 
