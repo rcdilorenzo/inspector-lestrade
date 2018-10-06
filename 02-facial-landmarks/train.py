@@ -46,8 +46,9 @@ df = df[df.Landmarks.apply(has_landmarks)]
 # Data Format
 #   Inputs:  [left_eyes, right_eyes, landmarks]
 #   Outputs: [XCam, YCam] (centimeters relative position to lens)
-generator = InspectNNGenerator(session, df, 128, set_type=SET_TYPE_TRAIN)
-val_generator = InspectNNGenerator(session, df, 128, set_type=SET_TYPE_VALIDATION)
+BATCH_SIZE = 128
+generator = InspectNNGenerator(session, df, BATCH_SIZE, set_type=SET_TYPE_TRAIN)
+val_generator = InspectNNGenerator(session, df, BATCH_SIZE, set_type=SET_TYPE_VALIDATION)
 
 # ========================================
 # Loss Function
@@ -65,7 +66,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v5-2+3x3-2x2-final-dense-norm-layers'
+NAME = 'v6-1e1-linear-dense-lm-2+3x3-2x2-final-dense-norm'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -99,9 +100,9 @@ right_path = eye_path(right_eye_input, prefix='right')
 
 landmarks = pipe(
     landmark_input,
-    Dense(16, activation='relu'),
+    Dense(16, activation='linear'),
     BatchNormalization(),
-    Dense(8, activation='relu'),
+    Dense(8, activation='linear'),
     Flatten()
 )
 
@@ -132,7 +133,7 @@ model = Model(inputs=[left_eye_input, right_eye_input, landmark_input],
 
 print('model', model.summary())
 
-model.compile(optimizer=Adam(lr=1e2), loss=loss_func)
+model.compile(optimizer=Adam(lr=1e1), loss=loss_func)
 
 model.fit_generator(generator, validation_data=val_generator,
                     callbacks=[board, checkpoint], epochs=100)
