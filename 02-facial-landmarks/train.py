@@ -66,7 +66,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v7-dense+-4conv2d'
+NAME = 'v8-custom-act1-with-v7'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -76,6 +76,9 @@ checkpoint = ModelCheckpoint('./models/' + NAME + '.{epoch:02d}-{val_loss:.2f}.h
 # ========================================
 # Model Layers
 # ========================================
+
+def coordinate_activation(x):
+    return 30 / (K.abs(x) + 1)
 
 left_eye_input = Input(shape=(128,128,3))
 right_eye_input = Input(shape=(128,128,3))
@@ -113,7 +116,7 @@ coordinate = pipe(
     grouped,
     Dense(16, activation='linear'),
     Dense(16, activation='linear'),
-    Dense(2, activation='linear', name='coord_output')
+    Dense(2, activation=coordinate_activation, name='coord_output')
 )
 
 gaze_likelihood = pipe(
