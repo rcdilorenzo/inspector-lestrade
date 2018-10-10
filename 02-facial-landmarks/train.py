@@ -66,7 +66,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v6-1e1-linear-dense-lm-2+3x3-2x2-final-dense-norm'
+NAME = 'v7-dense+-4conv2d'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -88,9 +88,9 @@ def eye_path(input_layer, prefix='na'):
         MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max1')),
         Conv2D(8, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv2')),
         MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max2')),
-        Conv2D(4, (2, 2), activation='relu', padding='same', name=(prefix + '_2x2conv1')),
-        MaxPooling2D(pool_size=(2, 2), padding='same', name=(prefix + '_max3')),
-        BatchNormalization(),
+        Conv2D(8, (2, 2), activation='relu', padding='same', name=(prefix + '_2x2conv1')),
+        MaxPooling2D(pool_size=(2, 2), padding='same', name=(prefix + '_max4')),
+        Dense(32, activation='linear'),
         Flatten(name=(prefix + '_flttn'))
     )
 
@@ -102,6 +102,7 @@ landmarks = pipe(
     landmark_input,
     Dense(16, activation='linear'),
     BatchNormalization(),
+    Dense(16, activation='linear'),
     Dense(8, activation='linear'),
     Flatten()
 )
@@ -111,8 +112,7 @@ grouped = concatenate([left_path, right_path, landmarks])
 coordinate = pipe(
     grouped,
     Dense(16, activation='linear'),
-    Dense(8, activation='linear'),
-    BatchNormalization(),
+    Dense(16, activation='linear'),
     Dense(2, activation='linear', name='coord_output')
 )
 
@@ -120,6 +120,7 @@ gaze_likelihood = pipe(
     grouped,
     Dense(8, activation='relu'),
     BatchNormalization(),
+    Dense(8, activation='relu'),
     Dense(4, activation='relu'),
     Dense(1, activation='sigmoid', name='gaze_likelihood')
 )
