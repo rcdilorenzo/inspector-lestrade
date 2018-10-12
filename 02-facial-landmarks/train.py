@@ -66,7 +66,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v8-custom-act1-with-v7'
+NAME = 'v9-larger-v8'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -87,11 +87,11 @@ landmark_input = Input(shape=(68,3))
 def eye_path(input_layer, prefix='na'):
     return pipe(
         input_layer,
-        Conv2D(8, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv1')),
+        Conv2D(16, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv1')),
         MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max1')),
-        Conv2D(8, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv2')),
+        Conv2D(16, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv2')),
         MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max2')),
-        Conv2D(8, (2, 2), activation='relu', padding='same', name=(prefix + '_2x2conv1')),
+        Conv2D(16, (2, 2), activation='relu', padding='same', name=(prefix + '_2x2conv1')),
         MaxPooling2D(pool_size=(2, 2), padding='same', name=(prefix + '_max4')),
         Dense(32, activation='linear'),
         Flatten(name=(prefix + '_flttn'))
@@ -114,8 +114,8 @@ grouped = concatenate([left_path, right_path, landmarks])
 
 coordinate = pipe(
     grouped,
-    Dense(16, activation='linear'),
-    Dense(16, activation='linear'),
+    Dense(64, activation='linear'),
+    Dense(32, activation='linear'),
     Dense(2, activation=coordinate_activation, name='coord_output')
 )
 
