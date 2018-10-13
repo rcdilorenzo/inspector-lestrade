@@ -66,7 +66,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v9-larger-v8'
+NAME = 'v10-2incep-dense-custom-act'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -84,16 +84,39 @@ left_eye_input = Input(shape=(128,128,3))
 right_eye_input = Input(shape=(128,128,3))
 landmark_input = Input(shape=(68,3))
 
+def applicative(input_layer, layers):
+    return list(map(lambda f: f(input_layer), layers))
+
+@curry
+def inception_module(prefix, count, input_layer):
+    return concatenate(applicative(input_layer, [
+        Conv2D(count, (1, 1), activation='relu',
+               padding='same', name=(prefix + '_conv1x1')),
+        compose(
+            Conv2D(count, (3, 3), activation='relu',
+                   padding='same', name=(prefix + '_conv3x3')),
+            Conv2D(count, (1, 1), activation='relu',
+                   padding='same', name=(prefix + '_conv1x1pre3x3'))
+        ),
+        compose(
+            Conv2D(count, (3, 3), activation='relu',
+                   padding='same', name=(prefix + '_conv5x5')),
+            Conv2D(count, (1, 1), activation='relu',
+                   padding='same', name=(prefix + '_conv1x1pre5x5'))
+        ),
+        compose(
+            Conv2D(count, (1, 1), activation='relu',
+                   padding='same', name=(prefix + '_conv1x1_postpool')),
+            MaxPooling2D(pool_size=(3, 3), strides=(1, 1),
+                         padding='same', name=(prefix + '_max')),
+        )
+    ]), axis=3)
+
 def eye_path(input_layer, prefix='na'):
     return pipe(
         input_layer,
-        Conv2D(16, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv1')),
-        MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max1')),
-        Conv2D(16, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv2')),
-        MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max2')),
-        Conv2D(16, (2, 2), activation='relu', padding='same', name=(prefix + '_2x2conv1')),
-        MaxPooling2D(pool_size=(2, 2), padding='same', name=(prefix + '_max4')),
-        Dense(32, activation='linear'),
+        inception_module(prefix + '_mni1', 6),
+        inception_module(prefix + '_mni2', 6),
         Flatten(name=(prefix + '_flttn'))
     )
 
