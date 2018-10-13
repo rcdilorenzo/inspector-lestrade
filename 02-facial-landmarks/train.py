@@ -66,7 +66,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v10-2incep-dense-custom-act'
+NAME = 'v11-fixed+modified-activation'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -78,7 +78,7 @@ checkpoint = ModelCheckpoint('./models/' + NAME + '.{epoch:02d}-{val_loss:.2f}.h
 # ========================================
 
 def coordinate_activation(x):
-    return 30 / (K.abs(x) + 1)
+    return x / (K.abs(x / 30) + 1)
 
 left_eye_input = Input(shape=(128,128,3))
 right_eye_input = Input(shape=(128,128,3))
