@@ -24,6 +24,13 @@ def extract_version(filename):
 def extract_model_val_loss(filename):
     return float(str(extract_version(filename)) + str(extract_loss(filename)))
 
+def weight_stats(filename):
+    return {
+        'val_loss': extract_loss(filename),
+        'step': extract_step(filename),
+        'model': extract_version(filename),
+    }
+
 @memoize
 def weights():
     files = os.listdir(os.path.abspath(
@@ -47,4 +54,4 @@ def weights_for(model_version, rank=1):
     available_weights = df[df.model == model_version].sort_values('val_loss')
     index = min(max(1, rank), available_weights.shape[0]) - 1
 
-    return 'models/' + available_weights.iloc[index].at['filename']
+    return available_weights.iloc[index].at['filename']
