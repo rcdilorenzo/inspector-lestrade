@@ -66,7 +66,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v11-fixed+modified-activation'
+NAME = 'v12-1e2-shortened-activation'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -78,7 +78,7 @@ checkpoint = ModelCheckpoint('./models/' + NAME + '.{epoch:02d}-{val_loss:.2f}.h
 # ========================================
 
 def coordinate_activation(x):
-    return x / (K.abs(x / 30) + 1)
+    return 3 * x / (K.abs(x / 10) + 1)
 
 left_eye_input = Input(shape=(128,128,3))
 right_eye_input = Input(shape=(128,128,3))
@@ -160,8 +160,8 @@ model = Model(inputs=[left_eye_input, right_eye_input, landmark_input],
 
 print('model', model.summary())
 
-model.compile(optimizer=Adam(lr=1e1), loss=loss_func)
+model.compile(optimizer=Adam(lr=1e2), loss=loss_func)
 
-model.fit_generator(generator, validation_data=val_generator,
-                    callbacks=[board, checkpoint], epochs=100)
+model.fit_generator(generator, validation_data=val_generator, steps_per_epoch=1000,
+                    callbacks=[board, checkpoint], epochs=1000)
 
