@@ -5,3 +5,4 @@ __pycache__
 
 01-yolov3/models/
 02-facial-landmarks/data/facial-landmarks.npy
+02-facial-landmarks/models/
