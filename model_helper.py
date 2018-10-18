@@ -16,7 +16,7 @@ from keras.callbacks import TensorBoard, ModelCheckpoint
 def print_banner(message):
     print('')
     print('============================================================')
-    print(textwrap.fill(message, 60, replace_whitespace=False))
+    print(textwrap.fill(message, 65, replace_whitespace=False))
     print('============================================================')
 
 def read_file(path):
