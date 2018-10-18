@@ -16,7 +16,7 @@ K.set_session(session)
 
 from shared import sample_df, frame
 from landmarks import landmarks
-from generator import InspectNNGenerator
+from generator import InspectorLestradeGenerator
 from generator import SET_TYPE_TEST, SET_TYPE_TRAIN, SET_TYPE_VALIDATION
 
 import numpy as np
@@ -33,7 +33,7 @@ ONE_EYE_IDX   = 1
 df = sample_df()
 df['Landmarks'] = np.load('02-facial-landmarks/sample_landmarks.npy')
 
-generator = InspectNNGenerator(session, df, 2, set_type=SET_TYPE_TRAIN)
+generator = InspectorLestradeGenerator(session, df, 2, set_type=SET_TYPE_TRAIN)
 
 # Remove randomization
 generator.data_frame = df

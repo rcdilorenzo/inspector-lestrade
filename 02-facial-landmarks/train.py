@@ -26,7 +26,7 @@ from keras.callbacks import TensorBoard, ModelCheckpoint
 # Import local files
 from shared import capture_df, frame
 from landmarks import landmarks
-from generator import InspectNNGenerator, SET_TYPE_TEST, SET_TYPE_TRAIN, SET_TYPE_VALIDATION
+from generator import InspectorLestradeGenerator, SET_TYPE_TEST, SET_TYPE_TRAIN, SET_TYPE_VALIDATION
 
 
 # ========================================
@@ -47,8 +47,8 @@ df = df[df.Landmarks.apply(has_landmarks)]
 #   Inputs:  [left_eyes, right_eyes, landmarks]
 #   Outputs: [XCam, YCam] (centimeters relative position to lens)
 BATCH_SIZE = 128
-generator = InspectNNGenerator(session, df, BATCH_SIZE, set_type=SET_TYPE_TRAIN)
-val_generator = InspectNNGenerator(session, df, BATCH_SIZE, set_type=SET_TYPE_VALIDATION)
+generator = InspectorLestradeGenerator(session, df, BATCH_SIZE, set_type=SET_TYPE_TRAIN)
+val_generator = InspectorLestradeGenerator(session, df, BATCH_SIZE, set_type=SET_TYPE_VALIDATION)
 
 # ========================================
 # Loss Function
