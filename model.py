@@ -29,6 +29,15 @@ def loss_func(actual, pred):
 
     return K.mean(tf.square(g_diff + 1) * (y_diff + x_diff))
 
+# Mean Euclidean distance for all values where both eyes visible
+def scaled_distance_loss(actual, pred):
+    combined = tf.concat([actual, pred], axis=1)
+    masked = tf.boolean_mask(combined, tf.math.equal(combined[:, 2], 1.0))
+    x_diff = tf.square(masked[:, 0] - masked[:, 3])
+    y_diff = tf.square(masked[:, 1] - masked[:, 4])
+    return K.mean(tf.sqrt(x_diff + y_diff))
+
+
 # ========================================
 # Constants / Helper functions
 # ========================================
@@ -141,8 +150,9 @@ class InspectorLestrade:
 
         return (x, y, likelihood)
 
-    def evaluate(self, workers=1):
-        self.model.compile(optimizer=Adam(lr=1e2), loss=loss_func)
+    def evaluate(self, workers=1, use_scaled_distance=False):
+        loss_f = scaled_distance_loss if use_scaled_distance else loss_func
+        self.model.compile(optimizer=Adam(lr=1e2), loss=loss_f)
 
         has_landmarks = lambda x: x.shape[0] > 0
         df = capture_df()
