@@ -1,8 +1,25 @@
+# Python build fragments
 .ipynb_checkpoints
-eye-gaze-capture.csv
 __pycache__
 .pytest_cache/
 
+# Various models/files
+eye-gaze-capture.csv
 01-yolov3/models/
 02-facial-landmarks/data/facial-landmarks.npy
 02-facial-landmarks/models/
+
+# Discussion folder
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.aux
+*.blg
+*.bbl
+*.out
+*-converted-to.pdf
+**/*Notes.bib
+discussion/*.log
+discussion/example.*
+discussion/auto/
+
