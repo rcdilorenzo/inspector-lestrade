@@ -3,14 +3,14 @@ import sys
 
 # Setup visible GPUs
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 import tensorflow as tf
 import keras.backend as K
 
 # Configure tensorflow options
 K.clear_session()
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.75)
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
 session = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 K.set_session(session)
 
@@ -66,7 +66,7 @@ def loss_func(actual, pred):
 # Callbacks
 # ========================================
 
-NAME = 'v12-1e2-shortened-activation'
+NAME = 'v13-v6-with-custom-activation'
 
 board = TensorBoard(log_dir='./logs/' + NAME)
 
@@ -78,45 +78,22 @@ checkpoint = ModelCheckpoint('./models/' + NAME + '.{epoch:02d}-{val_loss:.2f}.h
 # ========================================
 
 def coordinate_activation(x):
-    return 3 * x / (K.abs(x / 10) + 1)
+    return tf.pow(x, 3)
 
 left_eye_input = Input(shape=(128,128,3))
 right_eye_input = Input(shape=(128,128,3))
 landmark_input = Input(shape=(68,3))
 
-def applicative(input_layer, layers):
-    return list(map(lambda f: f(input_layer), layers))
-
-@curry
-def inception_module(prefix, count, input_layer):
-    return concatenate(applicative(input_layer, [
-        Conv2D(count, (1, 1), activation='relu',
-               padding='same', name=(prefix + '_conv1x1')),
-        compose(
-            Conv2D(count, (3, 3), activation='relu',
-                   padding='same', name=(prefix + '_conv3x3')),
-            Conv2D(count, (1, 1), activation='relu',
-                   padding='same', name=(prefix + '_conv1x1pre3x3'))
-        ),
-        compose(
-            Conv2D(count, (3, 3), activation='relu',
-                   padding='same', name=(prefix + '_conv5x5')),
-            Conv2D(count, (1, 1), activation='relu',
-                   padding='same', name=(prefix + '_conv1x1pre5x5'))
-        ),
-        compose(
-            Conv2D(count, (1, 1), activation='relu',
-                   padding='same', name=(prefix + '_conv1x1_postpool')),
-            MaxPooling2D(pool_size=(3, 3), strides=(1, 1),
-                         padding='same', name=(prefix + '_max')),
-        )
-    ]), axis=3)
-
 def eye_path(input_layer, prefix='na'):
     return pipe(
         input_layer,
-        inception_module(prefix + '_mni1', 6),
-        inception_module(prefix + '_mni2', 6),
+        Conv2D(8, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv1')),
+        MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max1')),
+        Conv2D(8, (3, 3), activation='relu', padding='same', name=(prefix + '_3x3conv2')),
+        MaxPooling2D(pool_size=(3, 3), padding='same', name=(prefix + '_max2')),
+        Conv2D(4, (2, 2), activation='relu', padding='same', name=(prefix + '_2x2conv1')),
+        MaxPooling2D(pool_size=(2, 2), padding='same', name=(prefix + '_max3')),
+        BatchNormalization(),
         Flatten(name=(prefix + '_flttn'))
     )
 
@@ -128,7 +105,6 @@ landmarks = pipe(
     landmark_input,
     Dense(16, activation='linear'),
     BatchNormalization(),
-    Dense(16, activation='linear'),
     Dense(8, activation='linear'),
     Flatten()
 )
@@ -137,8 +113,9 @@ grouped = concatenate([left_path, right_path, landmarks])
 
 coordinate = pipe(
     grouped,
-    Dense(64, activation='linear'),
-    Dense(32, activation='linear'),
+    Dense(16, activation='linear'),
+    Dense(8, activation='linear'),
+    BatchNormalization(),
     Dense(2, activation=coordinate_activation, name='coord_output')
 )
 
@@ -146,7 +123,6 @@ gaze_likelihood = pipe(
     grouped,
     Dense(8, activation='relu'),
     BatchNormalization(),
-    Dense(8, activation='relu'),
     Dense(4, activation='relu'),
     Dense(1, activation='sigmoid', name='gaze_likelihood')
 )
@@ -160,7 +136,7 @@ model = Model(inputs=[left_eye_input, right_eye_input, landmark_input],
 
 print('model', model.summary())
 
-model.compile(optimizer=Adam(lr=1e2), loss=loss_func)
+model.compile(optimizer=Adam(lr=1e1), loss=loss_func)
 
 model.fit_generator(generator, validation_data=val_generator, steps_per_epoch=1000,
                     callbacks=[board, checkpoint], epochs=1000)
